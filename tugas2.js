@@ -45,10 +45,20 @@ spotLight.castShadow = true;
 spotLight.shadow.bias = -0.0001;
 scene.add(spotLight);
 
-let baseObject, buttonObject;
+let baseObject, OmnitrixObject, buttonObject;
 let skrup1;
 let skrup2;
 let skrup3;
+
+let textures = [];
+let currentTextureIndex = 0;
+
+// Load all textures
+const textureLoader = new THREE.TextureLoader();
+const textureBase = textureLoader.load(`asset/base.png`);
+for (let i = 1; i <= 10; i++) {
+  textures.push(textureLoader.load(`asset/character/${i}.png`));
+}
 
 const loader = new GLTFLoader().setPath("asset/");
 loader.load(
@@ -63,7 +73,8 @@ loader.load(
       }
 
       // Check for object names and assign them
-      if (child.name === "Puterputer") baseObject = child;
+      if (child.name === "Base") baseObject = child;
+      if (child.name === "Puterputer") OmnitrixObject = child;
       if (child.name === "Tombol") buttonObject = child;
       if (child.name === "Mekanik1") skrup1 = child;
       if (child.name === "Mekanik2") skrup2 = child;
@@ -72,6 +83,8 @@ loader.load(
 
     mesh.position.set(0, 1.05, -1);
     scene.add(mesh);
+    baseObject.material.map = textureBase;
+    baseObject.material.needsUpdate = true;
 
     document.getElementById("progress-container").style.display = "none";
   },
@@ -88,20 +101,46 @@ window.addEventListener("resize", () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Rotate omnitrix object
-document.getElementById("rotate-y-button").addEventListener("click", () => {
+function changeBaseImage(index) {
   if (baseObject) {
-    gsap.to(baseObject.rotation, {
-      y: baseObject.rotation.y + (36 * Math.PI) / 180,
+    const texture = textureLoader.load(
+      `asset/character/${index}.png`,
+      () => {
+        console.log("Texture loaded successfully");
+        baseObject.material.map = texture;
+        baseObject.material.needsUpdate = true;
+      },
+      undefined,
+      (error) => {
+        console.error("Error loading texture:", error);
+      }
+    );
+  } 
+}
+
+// Rotate and change image
+document.getElementById("rotate-y-button").addEventListener("click", () => {
+  if (OmnitrixObject) {
+    // Rotate the OmnitrixObject
+    gsap.to(OmnitrixObject.rotation, {
+      y: OmnitrixObject.rotation.y + (36 * Math.PI) / 180,
       duration: 0.5,
       ease: "power2.out",
     });
+  }
+  if (baseObject) {
+    // Change image: Cycle through the textures (1 to 10)
+    currentTextureIndex = (currentTextureIndex % textures.length) + 1;
+    changeBaseImage(currentTextureIndex); // Update the texture on BaseObject
   }
 });
 
 // Animate the "Tombol" button press
 document.getElementById("tombol-button").addEventListener("click", () => {
   if (buttonObject) {
+    baseObject.material.map = textureBase;
+    baseObject.material.needsUpdate = true;
+    
     // Create a vector for the direction the button should move outward
     const direction = new THREE.Vector3(-Math.sqrt(2) / 2, 0, -Math.sqrt(2) / 2); // 45 degrees between -x and z
     direction.normalize();
